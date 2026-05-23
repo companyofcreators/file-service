@@ -45,6 +45,9 @@ func NewFileHandler(
 }
 
 func (h *FileHandler) Upload(w http.ResponseWriter, r *http.Request) {
+	// Enforce body size limit before parsing (50MB)
+	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
+
 	// Parse multipart form with max 50MB buffer
 	if err := r.ParseMultipartForm(50 << 20); err != nil {
 		h.writeError(w, http.StatusBadRequest, "не удалось обработать multipart-форму: "+err.Error())

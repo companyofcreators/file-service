@@ -11,6 +11,7 @@ import (
 
 	"github.com/companyofcreators/file-service/internal/app"
 	httphandler "github.com/companyofcreators/file-service/internal/interfaces/http"
+	"github.com/companyofcreators/file-service/pkg/header_auth"
 )
 
 func main() {
@@ -22,7 +23,8 @@ func main() {
 
 	logger := container.Logger
 
-	router := httphandler.NewRouter(container.Handler, logger)
+	headerSigner := header_auth.NewHeaderSigner(container.Config.HeaderHMACKey)
+	router := httphandler.NewRouter(container.Handler, headerSigner, logger, container.Config.AllowedOrigin)
 
 	srv := &http.Server{
 		Addr:         container.Config.HTTPAddress,

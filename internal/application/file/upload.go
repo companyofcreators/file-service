@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"path/filepath"
 	"strings"
 
@@ -117,7 +118,9 @@ func (uc *UploadUseCase) Execute(ctx context.Context, input UploadInput) (*Uploa
 
 	if err := uc.repo.Create(ctx, f); err != nil {
 		// Best-effort cleanup of uploaded object
-		_ = uc.storage.Delete(ctx, objectKey)
+		if derr := uc.storage.Delete(ctx, objectKey); derr != nil {
+			slog.Warn("failed to clean up uploaded object after metadata save failure", "object_key", objectKey, "error", derr)
+		}
 		return nil, fmt.Errorf("failed to save file metadata: %w", err)
 	}
 
@@ -133,7 +136,7 @@ func (uc *UploadUseCase) Execute(ctx context.Context, input UploadInput) (*Uploa
 	}
 	if err := uc.producer.PublishFileUploaded(ctx, event); err != nil {
 		// Non-fatal: log but don't fail the upload
-		_ = err
+		slog.Warn("failed to publish file uploaded event", "file_id", f.ID.String(), "error", err)
 	}
 
 	return &UploadOutput{

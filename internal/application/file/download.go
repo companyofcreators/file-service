@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -49,7 +50,11 @@ func (uc *DownloadUseCase) Execute(ctx context.Context, input DownloadInput) (*D
 
 	var thumbnailURL string
 	if domain.IsImage(f.MimeType) {
-		thumbnailURL, _ = uc.storage.GetThumbnailURL(ctx, f.ObjectKey, expiry)
+		var err error
+		thumbnailURL, err = uc.storage.GetThumbnailURL(ctx, f.ObjectKey, expiry)
+		if err != nil {
+			slog.Warn("failed to get thumbnail URL", "object_key", f.ObjectKey, "error", err)
+		}
 	}
 
 	return &DownloadOutput{

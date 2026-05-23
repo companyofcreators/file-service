@@ -6,9 +6,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+
+	"github.com/companyofcreators/file-service/pkg/header_auth"
 )
 
-func NewRouter(h *FileHandler, logger *slog.Logger) *chi.Mux {
+func NewRouter(h *FileHandler, signer *header_auth.HeaderSigner, logger *slog.Logger, allowedOrigin string) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Built-in chi middleware
@@ -17,7 +19,8 @@ func NewRouter(h *FileHandler, logger *slog.Logger) *chi.Mux {
 
 	// Custom middleware
 	r.Use(loggingMiddleware(logger))
-	r.Use(corsMiddleware)
+	r.Use(corsMiddleware(allowedOrigin))
+	r.Use(signer.VerifyMiddleware)
 
 	// File endpoints
 	r.Post("/internal/files/upload", h.Upload)
@@ -43,17 +46,23 @@ func loggingMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID, X-User-Role")
+func corsMiddleware(allowedOrigin string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			origin := allowedOrigin
+			if origin == "" {
+				origin = "http://localhost:8080"
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID, X-User-Role")
 
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
