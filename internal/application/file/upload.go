@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -114,6 +115,7 @@ func (uc *UploadUseCase) Execute(ctx context.Context, input UploadInput) (*Uploa
 		MimeType:  input.MimeType,
 		Size:      input.Size,
 		FileType:  input.FileType,
+		CreatedAt: time.Now().UTC(),
 	}
 
 	if err := uc.repo.Create(ctx, f); err != nil {

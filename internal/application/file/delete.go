@@ -3,6 +3,7 @@ package file
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -56,7 +57,7 @@ func (uc *DeleteUseCase) Execute(ctx context.Context, input DeleteInput) error {
 		OwnerID:   f.OwnerID.String(),
 		Bucket:    f.Bucket,
 		ObjectKey: f.ObjectKey,
-		Timestamp: f.CreatedAt.Unix(),
+		Timestamp: time.Now().UTC().Unix(),
 	}
 	if err := uc.producer.PublishFileDeleted(ctx, event); err != nil {
 		// Non-fatal
